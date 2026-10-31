@@ -1,0 +1,55 @@
+name: quoteflow-dev
+
+services:
+  odoo-db:
+    image: postgres:15
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: odoo
+      POSTGRES_PASSWORD: ${ODOO_DB_PASSWORD:?Configurer ODOO_DB_PASSWORD dans .env}
+    volumes:
+      - odoo-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U odoo -d postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  odoo:
+    image: odoo:19.0
+    restart: unless-stopped
+    depends_on:
+      odoo-db:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8069:8069"
+    environment:
+      HOST: odoo-db
+      PORT: "5432"
+      USER: odoo
+      PASSWORD: ${ODOO_DB_PASSWORD:?Configurer ODOO_DB_PASSWORD dans .env}
+    volumes:
+      - odoo-filestore:/var/lib/odoo
+
+  quoteflow-db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: quoteflow
+      POSTGRES_DB: quoteflow_dev
+      POSTGRES_PASSWORD: ${QUOTEFLOW_DB_PASSWORD:?Configurer QUOTEFLOW_DB_PASSWORD dans .env}
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - quoteflow-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U quoteflow -d quoteflow_dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  odoo-postgres-data:
+  odoo-filestore:
+  quoteflow-postgres-data:
